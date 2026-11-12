@@ -5,7 +5,8 @@ const STORAGE_KEY = 'tinytrails_crystal_run_save_v1';
 const DEFAULT_SAVE_DATA: SaveData = {
   highScore: 0,
   totalCrystals: 0,
-  levelCompleted: false,
+  unlockedLevel: 1,
+  highestLevelCompleted: 0,
   soundEnabled: true,
   musicEnabled: true,
   volume: 0.7,
@@ -18,10 +19,20 @@ export function loadSaveData(): SaveData {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return { ...DEFAULT_SAVE_DATA };
     const parsed = JSON.parse(raw);
+
+    // Support migration if older version only had levelCompleted boolean
+    let unlocked = typeof parsed.unlockedLevel === 'number' ? parsed.unlockedLevel : 1;
+    let completed = typeof parsed.highestLevelCompleted === 'number' ? parsed.highestLevelCompleted : 0;
+    if (parsed.levelCompleted && completed === 0) {
+      completed = 1;
+      unlocked = Math.max(unlocked, 2);
+    }
+
     return {
       highScore: typeof parsed.highScore === 'number' && !isNaN(parsed.highScore) ? Math.max(0, parsed.highScore) : 0,
       totalCrystals: typeof parsed.totalCrystals === 'number' && !isNaN(parsed.totalCrystals) ? Math.max(0, parsed.totalCrystals) : 0,
-      levelCompleted: Boolean(parsed.levelCompleted),
+      unlockedLevel: Math.max(1, Math.min(10, unlocked)),
+      highestLevelCompleted: Math.max(0, Math.min(10, completed)),
       soundEnabled: parsed.soundEnabled !== false,
       musicEnabled: parsed.musicEnabled !== false,
       volume: typeof parsed.volume === 'number' && !isNaN(parsed.volume) ? Math.min(1, Math.max(0, parsed.volume)) : 0.7,

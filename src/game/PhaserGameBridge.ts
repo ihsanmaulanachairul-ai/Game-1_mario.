@@ -1,7 +1,7 @@
 /**
  * PhaserGameBridge
  * Manages the single Phaser.Game instance, lifecycle, input synthesis (keyboard + touch),
- * and clean communication with React components.
+ * and clean communication with React components across all 10 levels.
  */
 
 import Phaser from 'phaser';
@@ -13,6 +13,7 @@ class PhaserGameBridge {
   private scene: GreenfieldScene | null = null;
   private container: HTMLElement | null = null;
   private isDestroying: boolean = false;
+  private currentLevel: number = 1;
 
   private currentInput: InputState = {
     left: false,
@@ -60,14 +61,26 @@ class PhaserGameBridge {
     return this.currentInput;
   }
 
+  public getLevel(): number {
+    return this.currentLevel;
+  }
+
+  public setLevel(lvl: number): void {
+    this.currentLevel = Math.max(1, Math.min(10, lvl));
+    if (this.scene && this.scene.scene && this.scene.scene.isActive()) {
+      this.restartLevel(this.currentLevel);
+    }
+  }
+
   public clearJustDown(): void {
     this.currentInput.jumpJustDown = false;
     this.currentInput.attackJustDown = false;
   }
 
-  public initGame(container: HTMLElement, callbacks: GameEventCallbacks, onPauseRequest?: () => void): void {
+  public initGame(container: HTMLElement, callbacks: GameEventCallbacks, onPauseRequest?: () => void, levelNumber = 1): void {
+    this.currentLevel = Math.max(1, Math.min(10, levelNumber));
+
     if (this.game || this.isDestroying) {
-      // Just update callbacks and container if already running
       this.callbacks = callbacks;
       this.onPauseCallback = onPauseRequest || null;
       if (this.scene) {
@@ -104,7 +117,6 @@ class PhaserGameBridge {
 
     this.game = new Phaser.Game(config);
 
-    // Keep scene reference updated
     this.game.events.once('ready', () => {
       if (!this.game) return;
       this.scene = this.game.scene.getScene('GreenfieldScene') as GreenfieldScene;
@@ -138,7 +150,6 @@ class PhaserGameBridge {
   }
 
   private handleKeyDown = (e: KeyboardEvent): void => {
-    // Avoid interfering when typing in an input
     if ((e.target as HTMLElement)?.tagName === 'INPUT') return;
 
     let handled = false;
@@ -195,7 +206,6 @@ class PhaserGameBridge {
     this.syncInputs();
   };
 
-  // Called from TouchControls component
   public setTouchInput(action: keyof typeof this.touchState, isDown: boolean): void {
     if (action === 'jump' && isDown && !this.touchState.jump) {
       this.currentInput.jumpJustDown = true;
@@ -233,13 +243,16 @@ class PhaserGameBridge {
     }
   }
 
-  public restartLevel(): void {
+  public restartLevel(newLevelNumber?: number): void {
+    if (typeof newLevelNumber === 'number') {
+      this.currentLevel = Math.max(1, Math.min(10, newLevelNumber));
+    }
     if (this.scene && this.scene.scene) {
-      this.scene.scene.restart();
+      this.scene.scene.restart({ levelNumber: this.currentLevel });
     } else if (this.game) {
       const activeScene = this.game.scene.getScene('GreenfieldScene');
       if (activeScene) {
-        activeScene.scene.restart();
+        activeScene.scene.restart({ levelNumber: this.currentLevel });
       }
     }
   }

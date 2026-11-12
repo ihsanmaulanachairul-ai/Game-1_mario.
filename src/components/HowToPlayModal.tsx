@@ -76,11 +76,12 @@ export const HowToPlayModal: React.FC<HowToPlayModalProps> = ({ onClose }) => {
 
         {/* Section 3: Gameplay Tips */}
         <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-3.5 mb-5 text-xs space-y-1.5 text-slate-300">
-          <div className="font-bold text-emerald-300 mb-1">ADVENTURER HINTS</div>
-          <p>• <strong className="text-slate-100">Stomp on Enemies:</strong> Jump right onto Slimes and Beetles to bounce high and defeat them!</p>
-          <p>• <strong className="text-slate-100">Bump Mystery Crates:</strong> Jump into boxes from underneath or swing your staff to unveil crystals and hearts.</p>
-          <p>• <strong className="text-slate-100">Spring Mushrooms:</strong> Step on bouncy red mushrooms for huge vertical boosts to reach sky crystals.</p>
-          <p>• <strong className="text-slate-100">Exit Gate:</strong> Walk through the glowing stone arch at the far right to clear the level!</p>
+          <div className="font-bold text-emerald-300 mb-1">ADVENTURER HINTS (10 STAGES)</div>
+          <p>• <strong className="text-slate-100">Stomp on Enemies:</strong> Jump right onto Slimes and Beetles to defeat them and bounce higher.</p>
+          <p>• <strong className="text-slate-100">Mystery Crates:</strong> Jump into crates from underneath or swing your staff to unveil bonus crystals and hearts.</p>
+          <p>• <strong className="text-slate-100">Spikes & Moving Platforms:</strong> Watch out for sharp crystal spikes on later stages and time your jumps on levitating rock lifts!</p>
+          <p>• <strong className="text-slate-100">Level 10 Boss — Gorgath:</strong> Leap over his ground pound shockwaves, dodge falling ceiling shards, and stomp on him when he gets stunned!</p>
+          <p>• <strong className="text-slate-100">Exit Gate:</strong> Walk through the glowing portal at the end of each stage to advance!</p>
         </div>
 
         <button

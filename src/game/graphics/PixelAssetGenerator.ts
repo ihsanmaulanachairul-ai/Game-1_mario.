@@ -19,6 +19,8 @@ export class PixelAssetGenerator {
     this.createEnvironmentTiles(scene);
     this.createExitGateTexture(scene);
     this.createParticleTextures(scene);
+    this.createCavernAndHazardTiles(scene);
+    this.createBossTextures(scene);
   }
 
   /**
@@ -818,5 +820,259 @@ export class PixelAssetGenerator {
     ctx3.fillStyle = '#fef08a';
     ctx3.fillRect(3, 3, 2, 2);
     scene.textures.addCanvas('particle-hit', c3);
+  }
+
+  /**
+   * Cavern environment tiles, hazard spikes, and moving platforms
+   */
+  private static createCavernAndHazardTiles(scene: Phaser.Scene): void {
+    if (scene.textures.exists('tile-cave-top')) return;
+
+    // 1. Cave Top Tile (16x16) - Dark purple-slate stone with glowing cyan crystal fringe
+    const { canvas: cCaveTop, ctx: ctxCaveTop } = this.createCanvas(16, 16);
+    ctxCaveTop.fillStyle = '#1e1b4b'; // Deep dark rock
+    ctxCaveTop.fillRect(0, 0, 16, 16);
+    ctxCaveTop.fillStyle = '#312e81'; // Shadowed rock
+    ctxCaveTop.fillRect(2, 6, 4, 4);
+    ctxCaveTop.fillRect(10, 10, 5, 4);
+    // Crystal stone surface
+    ctxCaveTop.fillStyle = '#4338ca';
+    ctxCaveTop.fillRect(0, 0, 16, 5);
+    ctxCaveTop.fillStyle = '#06b6d4'; // Cyan crystalline rim
+    ctxCaveTop.fillRect(0, 0, 16, 2);
+    ctxCaveTop.fillStyle = '#67e8f9';
+    ctxCaveTop.fillRect(3, 2, 2, 2);
+    ctxCaveTop.fillRect(8, 2, 3, 2);
+    ctxCaveTop.fillRect(13, 2, 2, 2);
+    scene.textures.addCanvas('tile-cave-top', cCaveTop);
+
+    // 2. Cave Dirt/Base Tile (16x16)
+    const { canvas: cCaveDirt, ctx: ctxCaveDirt } = this.createCanvas(16, 16);
+    ctxCaveDirt.fillStyle = '#0f172a';
+    ctxCaveDirt.fillRect(0, 0, 16, 16);
+    ctxCaveDirt.fillStyle = '#1e293b';
+    ctxCaveDirt.fillRect(2, 2, 5, 4);
+    ctxCaveDirt.fillRect(9, 7, 5, 5);
+    ctxCaveDirt.fillStyle = '#334155';
+    ctxCaveDirt.fillRect(11, 2, 3, 3);
+    ctxCaveDirt.fillRect(3, 11, 4, 3);
+    // Tiny embedded glowing gem flecks
+    ctxCaveDirt.fillStyle = '#38bdf8';
+    ctxCaveDirt.fillRect(4, 5, 1, 1);
+    ctxCaveDirt.fillRect(12, 11, 1, 1);
+    scene.textures.addCanvas('tile-cave-dirt', cCaveDirt);
+
+    // 3. Hazard Spikes (16x16)
+    const { canvas: cSpike, ctx: ctxSpike } = this.createCanvas(16, 16);
+    ctxSpike.fillStyle = '#334155'; // Base stone
+    ctxSpike.fillRect(0, 14, 16, 2);
+    // 3 sharp triangular spikes
+    const drawSpike = (x: number) => {
+      ctxSpike.fillStyle = '#64748b';
+      ctxSpike.beginPath();
+      ctxSpike.moveTo(x, 14);
+      ctxSpike.lineTo(x + 2, 3);
+      ctxSpike.lineTo(x + 5, 14);
+      ctxSpike.closePath();
+      ctxSpike.fill();
+      // Sharp red threat tip
+      ctxSpike.fillStyle = '#ef4444';
+      ctxSpike.fillRect(x + 1, 3, 2, 3);
+      ctxSpike.fillStyle = '#fca5a5';
+      ctxSpike.fillRect(x + 2, 3, 1, 2);
+    };
+    drawSpike(0);
+    drawSpike(5);
+    drawSpike(10);
+    scene.textures.addCanvas('tile-spike', cSpike);
+
+    // 4. Moving Platform (32x12)
+    const { canvas: cPlat, ctx: ctxPlat } = this.createCanvas(32, 12);
+    ctxPlat.fillStyle = '#1e293b';
+    ctxPlat.fillRect(0, 0, 32, 12);
+    ctxPlat.fillStyle = '#334155';
+    ctxPlat.fillRect(1, 1, 30, 10);
+    ctxPlat.fillStyle = '#0ea5e9'; // Runic energy border
+    ctxPlat.fillRect(0, 0, 32, 2);
+    ctxPlat.fillRect(0, 10, 32, 2);
+    // Glowing center runic jewel
+    ctxPlat.fillStyle = '#38bdf8';
+    ctxPlat.fillRect(14, 4, 4, 4);
+    ctxPlat.fillStyle = '#ffffff';
+    ctxPlat.fillRect(15, 5, 2, 2);
+    scene.textures.addCanvas('tile-moving-plat', cPlat);
+
+    // 5. Hanging Stalactite (24x40)
+    const { canvas: cStal, ctx: ctxStal } = this.createCanvas(24, 40);
+    ctxStal.fillStyle = '#1e293b';
+    ctxStal.beginPath();
+    ctxStal.moveTo(0, 0);
+    ctxStal.lineTo(24, 0);
+    ctxStal.lineTo(12, 40);
+    ctxStal.closePath();
+    ctxStal.fill();
+    ctxStal.fillStyle = '#334155';
+    ctxStal.beginPath();
+    ctxStal.moveTo(4, 0);
+    ctxStal.lineTo(18, 0);
+    ctxStal.lineTo(12, 34);
+    ctxStal.closePath();
+    ctxStal.fill();
+    // Glowing crystal tip
+    ctxStal.fillStyle = '#38bdf8';
+    ctxStal.fillRect(11, 35, 2, 4);
+    scene.textures.addCanvas('bg-stalactite', cStal);
+  }
+
+  /**
+   * Boss: Gorgath the Crystal Golem (48x48 spritesheet)
+   * Frames:
+   * 0..2: Walk / Heavy Stomp
+   * 3: Ground Pound Attack
+   * 4: Stunned / Vulnerable (weakpoint glowing on head)
+   * 5: Defeated
+   */
+  private static createBossTextures(scene: Phaser.Scene): void {
+    if (scene.textures.exists('boss-gorgath')) return;
+
+    const fw = 48;
+    const fh = 48;
+    const totalFrames = 6;
+    const { canvas, ctx } = this.createCanvas(fw * totalFrames, fh);
+
+    const c = {
+      stone: '#334155',
+      stoneDark: '#1e293b',
+      stoneLight: '#64748b',
+      moss: '#15803d',
+      mossLight: '#22c55e',
+      crystal: '#38bdf8',
+      crystalGlow: '#a5f3fc',
+      crystalCore: '#0284c7',
+      eye: '#67e8f9',
+      eyeAngry: '#f43f5e',
+    };
+
+    for (let f = 0; f < totalFrames; f++) {
+      const ox = f * fw;
+      ctx.clearRect(ox, 0, fw, fh);
+
+      let bob = 0;
+      let armY = 0;
+      let isStunned = f === 4;
+      let isPound = f === 3;
+      let isDefeated = f === 5;
+
+      if (f < 3) {
+        bob = f === 1 ? -2 : 0;
+        armY = f === 0 ? 0 : f === 1 ? -2 : 2;
+      } else if (isPound) {
+        bob = 3;
+        armY = -6;
+      } else if (isStunned) {
+        bob = 6;
+        armY = 8;
+      } else if (isDefeated) {
+        bob = 10;
+        armY = 12;
+      }
+
+      // 1. Colossal Legs
+      ctx.fillStyle = c.stoneDark;
+      ctx.fillRect(ox + 12, 34 + bob, 10, 14);
+      ctx.fillRect(ox + 26, 34 + bob, 10, 14);
+      ctx.fillStyle = c.stone;
+      ctx.fillRect(ox + 10, 42 + bob, 12, 6);
+      ctx.fillRect(ox + 26, 42 + bob, 12, 6);
+
+      // 2. Massive Torso
+      ctx.fillStyle = isDefeated ? '#475569' : c.stoneDark;
+      ctx.fillRect(ox + 10, 16 + bob, 28, 20);
+      ctx.fillStyle = c.stone;
+      ctx.fillRect(ox + 12, 18 + bob, 24, 16);
+
+      // Moss Overgrowth on Shoulders
+      ctx.fillStyle = c.moss;
+      ctx.fillRect(ox + 8, 14 + bob, 8, 4);
+      ctx.fillRect(ox + 32, 14 + bob, 8, 4);
+      ctx.fillStyle = c.mossLight;
+      ctx.fillRect(ox + 10, 14 + bob, 4, 2);
+      ctx.fillRect(ox + 34, 14 + bob, 4, 2);
+
+      // 3. Glowing Radiant Crystal Core (Chest)
+      ctx.fillStyle = isStunned ? '#f43f5e' : c.crystalCore;
+      ctx.fillRect(ox + 20, 22 + bob, 8, 8);
+      ctx.fillStyle = isStunned ? '#fb7185' : c.crystal;
+      ctx.fillRect(ox + 21, 23 + bob, 6, 6);
+      ctx.fillStyle = isStunned ? '#ffffff' : c.crystalGlow;
+      ctx.fillRect(ox + 23, 25 + bob, 2, 2);
+
+      // 4. Heavy Stone Arms & Fists
+      ctx.fillStyle = c.stoneLight;
+      if (isPound) {
+        // Raised Fists Above Head
+        ctx.fillRect(ox + 4, 6 + armY, 8, 14);
+        ctx.fillRect(ox + 36, 6 + armY, 8, 14);
+        ctx.fillStyle = c.crystal;
+        ctx.fillRect(ox + 4, 4 + armY, 8, 4);
+        ctx.fillRect(ox + 36, 4 + armY, 8, 4);
+      } else {
+        // Arms at side
+        ctx.fillRect(ox + 4, 20 + armY + bob, 8, 16);
+        ctx.fillRect(ox + 36, 20 - armY + bob, 8, 16);
+        ctx.fillStyle = c.crystal;
+        ctx.fillRect(ox + 5, 32 + armY + bob, 6, 4);
+        ctx.fillRect(ox + 37, 32 - armY + bob, 6, 4);
+      }
+
+      // 5. Head & Horn Crystals
+      ctx.fillStyle = c.stoneDark;
+      ctx.fillRect(ox + 16, 6 + bob, 16, 12);
+      ctx.fillStyle = c.stone;
+      ctx.fillRect(ox + 18, 8 + bob, 12, 10);
+
+      // Glowing Crystal Crown on Head (Pip can stomp this when boss is stunned!)
+      ctx.fillStyle = isStunned ? '#f43f5e' : c.crystal;
+      ctx.fillRect(ox + 22, 2 + bob, 4, 6);
+      ctx.fillRect(ox + 19, 4 + bob, 10, 2);
+      ctx.fillStyle = isStunned ? '#fff' : c.crystalGlow;
+      ctx.fillRect(ox + 23, 1 + bob, 2, 3);
+
+      // Glowing Eyes
+      ctx.fillStyle = isStunned ? '#fb7185' : isPound ? c.eyeAngry : c.eye;
+      ctx.fillRect(ox + 20, 11 + bob, 3, 2);
+      ctx.fillRect(ox + 25, 11 + bob, 3, 2);
+    }
+
+    scene.textures.addSpriteSheet('boss-gorgath', canvas as unknown as HTMLImageElement, {
+      frameWidth: fw,
+      frameHeight: fh,
+    });
+
+    // 6. Boss Projectile: Crystal Shard (12x12)
+    const { canvas: cShard, ctx: ctxShard } = this.createCanvas(12, 12);
+    ctxShard.fillStyle = '#0284c7';
+    ctxShard.beginPath();
+    ctxShard.moveTo(6, 0);
+    ctxShard.lineTo(12, 6);
+    ctxShard.lineTo(6, 12);
+    ctxShard.lineTo(0, 6);
+    ctxShard.closePath();
+    ctxShard.fill();
+    ctxShard.fillStyle = '#38bdf8';
+    ctxShard.fillRect(3, 3, 6, 6);
+    ctxShard.fillStyle = '#ffffff';
+    ctxShard.fillRect(5, 5, 2, 2);
+    scene.textures.addCanvas('projectile-shard', cShard);
+
+    // 7. Boss Shockwave (20x10)
+    const { canvas: cWave, ctx: ctxWave } = this.createCanvas(20, 10);
+    ctxWave.fillStyle = '#38bdf8';
+    ctxWave.fillRect(4, 2, 12, 6);
+    ctxWave.fillStyle = '#67e8f9';
+    ctxWave.fillRect(2, 4, 16, 4);
+    ctxWave.fillStyle = '#ffffff';
+    ctxWave.fillRect(7, 5, 6, 2);
+    scene.textures.addCanvas('boss-shockwave', cWave);
   }
 }
