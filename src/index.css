@@ -1,0 +1,32 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-pixel: 'Silkscreen', monospace;
+  --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+
+:root {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.font-pixel {
+  font-family: 'Silkscreen', monospace;
+}
+
+/* Crisp pixel rendering */
+canvas {
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -webkit-crisp-edges;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* Prevent unwanted mobile scrolling/gestures during play */
+.no-touch-callout {
+  -webkit-touch-callout: none;
+  touch-action: none;
+}

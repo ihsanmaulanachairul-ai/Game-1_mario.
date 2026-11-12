@@ -1,0 +1,6 @@
+{
+  "name": "Tiny Trails: Crystal Run",
+  "description": "A mobile-first 2D side-scrolling platformer starring Pip the explorer in Greenfield Crossing.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
