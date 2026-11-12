@@ -21,6 +21,7 @@ export class PixelAssetGenerator {
     this.createParticleTextures(scene);
     this.createCavernAndHazardTiles(scene);
     this.createBossTextures(scene);
+    this.createWaterTextures(scene);
   }
 
   /**
@@ -1074,5 +1075,89 @@ export class PixelAssetGenerator {
     ctxWave.fillStyle = '#ffffff';
     ctxWave.fillRect(7, 5, 6, 2);
     scene.textures.addCanvas('boss-shockwave', cWave);
+  }
+
+  /**
+   * Water hazard textures: surface animated waves, deep water, bubbles, and splash droplets
+   */
+  private static createWaterTextures(scene: Phaser.Scene): void {
+    if (scene.textures.exists('tile-water-top')) return;
+
+    // 1. Meadow Water Top (16x16) - Translucent animated crystalline surface wave
+    const { canvas: cWaterTop, ctx: ctxWaterTop } = this.createCanvas(16, 16);
+    // Translucent aqua body
+    ctxWaterTop.fillStyle = 'rgba(14, 165, 233, 0.75)';
+    ctxWaterTop.fillRect(0, 3, 16, 13);
+    // Deep blue undertone
+    ctxWaterTop.fillStyle = 'rgba(2, 132, 199, 0.85)';
+    ctxWaterTop.fillRect(0, 7, 16, 9);
+    // Foam wave peaks
+    ctxWaterTop.fillStyle = '#ffffff';
+    ctxWaterTop.fillRect(1, 1, 4, 2);
+    ctxWaterTop.fillRect(9, 1, 5, 2);
+    // Light cyan crest
+    ctxWaterTop.fillStyle = '#bae6fd';
+    ctxWaterTop.fillRect(0, 2, 6, 2);
+    ctxWaterTop.fillRect(8, 2, 8, 2);
+    // Sparkle flecks
+    ctxWaterTop.fillStyle = '#f0f9ff';
+    ctxWaterTop.fillRect(3, 5, 2, 1);
+    ctxWaterTop.fillRect(11, 6, 2, 1);
+    scene.textures.addCanvas('tile-water-top', cWaterTop);
+
+    // 2. Meadow Water Deep (16x16)
+    const { canvas: cWaterDeep, ctx: ctxWaterDeep } = this.createCanvas(16, 16);
+    ctxWaterDeep.fillStyle = '#0369a1';
+    ctxWaterDeep.fillRect(0, 0, 16, 16);
+    ctxWaterDeep.fillStyle = '#0284c7';
+    ctxWaterDeep.fillRect(2, 3, 5, 2);
+    ctxWaterDeep.fillRect(9, 9, 6, 2);
+    ctxWaterDeep.fillStyle = '#075985';
+    ctxWaterDeep.fillRect(0, 12, 16, 4);
+    scene.textures.addCanvas('tile-water-deep', cWaterDeep);
+
+    // 3. Cavern Crystal Water Top (16x16) - Bioluminescent cyan-purple pool
+    const { canvas: cCaveWaterTop, ctx: ctxCaveWaterTop } = this.createCanvas(16, 16);
+    ctxCaveWaterTop.fillStyle = 'rgba(30, 27, 75, 0.85)';
+    ctxCaveWaterTop.fillRect(0, 3, 16, 13);
+    ctxCaveWaterTop.fillStyle = 'rgba(6, 182, 212, 0.7)';
+    ctxCaveWaterTop.fillRect(0, 4, 16, 12);
+    // Bioluminescent highlights
+    ctxCaveWaterTop.fillStyle = '#67e8f9';
+    ctxCaveWaterTop.fillRect(1, 1, 4, 2);
+    ctxCaveWaterTop.fillRect(9, 1, 5, 2);
+    ctxCaveWaterTop.fillStyle = '#c084fc';
+    ctxCaveWaterTop.fillRect(0, 2, 6, 2);
+    ctxCaveWaterTop.fillRect(8, 2, 8, 2);
+    scene.textures.addCanvas('tile-cave-water-top', cCaveWaterTop);
+
+    // 4. Cavern Crystal Water Deep (16x16)
+    const { canvas: cCaveWaterDeep, ctx: ctxCaveWaterDeep } = this.createCanvas(16, 16);
+    cCaveWaterDeep.width = 16;
+    ctxCaveWaterDeep.fillStyle = '#0f172a';
+    ctxCaveWaterDeep.fillRect(0, 0, 16, 16);
+    ctxCaveWaterDeep.fillStyle = '#1e1b4b';
+    ctxCaveWaterDeep.fillRect(0, 0, 16, 8);
+    ctxCaveWaterDeep.fillStyle = '#312e81';
+    ctxCaveWaterDeep.fillRect(2, 4, 4, 2);
+    ctxCaveWaterDeep.fillRect(10, 8, 4, 2);
+    scene.textures.addCanvas('tile-cave-water-deep', cCaveWaterDeep);
+
+    // 5. Water Splash Particle (6x6)
+    const { canvas: cSplash, ctx: ctxSplash } = this.createCanvas(6, 6);
+    ctxSplash.fillStyle = '#bae6fd';
+    ctxSplash.fillRect(1, 1, 4, 4);
+    ctxSplash.fillStyle = '#ffffff';
+    ctxSplash.fillRect(2, 2, 2, 2);
+    scene.textures.addCanvas('particle-splash', cSplash);
+
+    // 6. Water Bubble Particle (4x4)
+    const { canvas: cBubble, ctx: ctxBubble } = this.createCanvas(4, 4);
+    ctxBubble.fillStyle = '#38bdf8';
+    ctxBubble.fillRect(0, 1, 4, 2);
+    ctxBubble.fillRect(1, 0, 2, 4);
+    ctxBubble.fillStyle = '#ffffff';
+    ctxBubble.fillRect(1, 1, 1, 1);
+    scene.textures.addCanvas('particle-bubble', cBubble);
   }
 }

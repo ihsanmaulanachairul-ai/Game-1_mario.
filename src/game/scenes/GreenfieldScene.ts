@@ -30,6 +30,7 @@ export class GreenfieldScene extends Phaser.Scene {
   // Game Entities
   private player!: Phaser.Physics.Arcade.Sprite;
   private platforms!: Phaser.Physics.Arcade.StaticGroup;
+  private waterZones!: Phaser.Physics.Arcade.StaticGroup;
   private movingPlatforms: Array<{ sprite: Phaser.Physics.Arcade.Sprite; min: number; max: number; speed: number; axis: 'x' | 'y' }> = [];
   private spikes!: Phaser.Physics.Arcade.StaticGroup;
   private mysteryCrates!: Phaser.Physics.Arcade.StaticGroup;
@@ -37,6 +38,10 @@ export class GreenfieldScene extends Phaser.Scene {
   private springs!: Phaser.Physics.Arcade.StaticGroup;
   private enemies!: Phaser.Physics.Arcade.Group;
   private exitGate!: Phaser.Physics.Arcade.Sprite;
+
+  // Water & Pit State
+  private isDrowning: boolean = false;
+  private currentGroundSegments: Array<{ start: number; end: number }> = [];
 
   // Boss Battle Entities (Level 10)
   private bossSprite: Phaser.Physics.Arcade.Sprite | null = null;
@@ -120,6 +125,7 @@ export class GreenfieldScene extends Phaser.Scene {
     this.levelWidth = config.width;
 
     this.isDead = false;
+    this.isDrowning = false;
     this.isLevelComplete = false;
     this.isInvulnerable = false;
     this.isAttacking = false;
@@ -150,8 +156,8 @@ export class GreenfieldScene extends Phaser.Scene {
       this.callbacks = phaserBridge.getCallbacks();
     }
 
-    // Set world physics bounds
-    this.physics.world.setBounds(0, 0, this.levelWidth, this.LEVEL_HEIGHT);
+    // Set world physics bounds - allow player to drop into water without hitting an invisible bottom floor
+    this.physics.world.setBounds(0, 0, this.levelWidth, this.LEVEL_HEIGHT + 100);
     this.physics.world.gravity.y = 850;
 
     // Create Animations
@@ -162,6 +168,7 @@ export class GreenfieldScene extends Phaser.Scene {
 
     // Create Physics Groups
     this.platforms = this.physics.add.staticGroup();
+    this.waterZones = this.physics.add.staticGroup();
     this.spikes = this.physics.add.staticGroup();
     this.mysteryCrates = this.physics.add.staticGroup();
     this.springs = this.physics.add.staticGroup();
@@ -421,10 +428,20 @@ export class GreenfieldScene extends Phaser.Scene {
       { start: 1140 + lvl * 20, end: 1750 + lvl * 20 },
       { start: 1850 + lvl * 25, end: this.levelWidth },
     ];
+    this.currentGroundSegments = groundSegments;
 
     groundSegments.forEach((seg) => {
       this.createGroundSegment(seg.start, seg.end, 270, topTileKey, dirtTileKey);
     });
+
+    // Create Water Hazards across all chasm / pit gaps between ground segments
+    for (let i = 0; i < groundSegments.length - 1; i++) {
+      const pitStart = groundSegments[i].end;
+      const pitEnd = groundSegments[i + 1].start;
+      if (pitEnd > pitStart) {
+        this.createWaterHazard(pitStart, pitEnd, 268, isCavern);
+      }
+    }
 
     // Elevated platforms & stepping stones
     const numPlatforms = 6 + lvl;
@@ -523,6 +540,7 @@ export class GreenfieldScene extends Phaser.Scene {
     const arenaW = this.levelWidth; // 860px
 
     // 1. Solid Arena Floor & Side Walls
+    this.currentGroundSegments = [{ start: 0, end: arenaW }];
     this.createGroundSegment(0, arenaW, 260, 'tile-cave-top', 'tile-cave-dirt');
 
     // Left and Right Enclosing Walls
@@ -562,6 +580,86 @@ export class GreenfieldScene extends Phaser.Scene {
     this.bossMoveDir = -1;
 
     soundManager.playBossRoar();
+  }
+
+  /**
+   * Builds an animated water hazard pool across chasm and pit gaps
+   */
+  private createWaterHazard(startX: number, endX: number, surfaceY: number, isCavern: boolean): void {
+    const tileW = 16;
+    const topKey = isCavern ? 'tile-cave-water-top' : 'tile-water-top';
+    const deepKey = isCavern ? 'tile-cave-water-deep' : 'tile-water-deep';
+
+    // Surface wave tiles with gentle animated oscillation
+    for (let x = startX; x < endX; x += tileW) {
+      const topTile = this.add.image(x + tileW / 2, surfaceY + tileW / 2, topKey).setDepth(6);
+      this.tweens.add({
+        targets: topTile,
+        y: surfaceY + tileW / 2 + 2,
+        duration: 900 + ((x % 4) * 100),
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      });
+
+      // Deep water tiles extending down below the visible screen
+      for (let y = surfaceY + tileW; y < this.LEVEL_HEIGHT + 40; y += tileW) {
+        this.add.image(x + tileW / 2, y + tileW / 2, deepKey).setDepth(5);
+      }
+    }
+
+    // Physical Arcade static water sensor body
+    const width = Math.max(16, endX - startX);
+    const centerX = startX + width / 2;
+    const centerY = surfaceY + 28;
+
+    const waterSensor = this.waterZones.create(centerX, centerY, topKey) as Phaser.Physics.Arcade.Sprite;
+    waterSensor.setVisible(false);
+    if (waterSensor.body) {
+      waterSensor.body.setSize(width, 70);
+      (waterSensor.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
+      waterSensor.refreshBody();
+    }
+  }
+
+  /**
+   * Spawns splash droplets and rising bubbles when player plunges into water
+   */
+  private createWaterSplashEffect(x: number, y: number): void {
+    for (let i = 0; i < 7; i++) {
+      const droplet = this.add.image(x, y, 'particle-splash').setDepth(20);
+      const angle = Phaser.Math.FloatBetween(-Math.PI * 0.85, -Math.PI * 0.15);
+      const speed = Phaser.Math.Between(40, 90);
+      const vx = Math.cos(angle) * speed;
+      const vy = Math.sin(angle) * speed;
+
+      this.tweens.add({
+        targets: droplet,
+        x: x + vx * 0.45,
+        y: y + vy * 0.35 + 16,
+        alpha: 0,
+        scale: { from: 1.2, to: 0.3 },
+        duration: 450 + Phaser.Math.Between(-50, 50),
+        ease: 'Quad.easeOut',
+        onComplete: () => droplet.destroy(),
+      });
+    }
+
+    // Rising underwater bubbles
+    for (let b = 0; b < 4; b++) {
+      this.time.delayedCall(b * 80, () => {
+        if (!this.sys || !this.scene.isActive()) return;
+        const bubble = this.add.image(x + Phaser.Math.Between(-8, 8), y + 10, 'particle-bubble').setDepth(19);
+        this.tweens.add({
+          targets: bubble,
+          y: y - 10,
+          alpha: 0,
+          duration: 400,
+          ease: 'Sine.easeOut',
+          onComplete: () => bubble.destroy(),
+        });
+      });
+    }
   }
 
   private createGroundSegment(startX: number, endX: number, surfaceY: number, topKey = 'tile-grass-top', dirtKey = 'tile-dirt'): void {
@@ -685,6 +783,11 @@ export class GreenfieldScene extends Phaser.Scene {
   private setupCollisions(): void {
     // Player on Platforms
     this.physics.add.collider(this.player, this.platforms);
+
+    // Player with Water Hazard Zones
+    this.physics.add.overlap(this.player, this.waterZones, () => {
+      this.handleWaterDrown();
+    });
 
     // Player with Moving Platforms
     this.movingPlatforms.forEach((mp) => {
@@ -1100,6 +1203,58 @@ export class GreenfieldScene extends Phaser.Scene {
     });
   }
 
+  /**
+   * Dedicated water drowning handler: water splash, aquatic sink physics, sound, and clean safe respawn
+   */
+  private handleWaterDrown(): void {
+    if (this.isDead || this.isDrowning || !this.player) return;
+    this.isDrowning = true;
+    this.isDead = true;
+    this.lives--;
+
+    soundManager.playSplash();
+
+    // Trigger visual water splash and bubble effect
+    this.createWaterSplashEffect(this.player.x, 268);
+
+    // Apply gentle aquatic drag, slow sinking instead of jarring upward blast
+    if (this.player.body) {
+      this.player.setVelocity(this.player.body.velocity.x * 0.2, 40);
+      this.player.setCollideWorldBounds(false);
+    }
+    this.player.play('pip-hurt');
+    this.player.setTint(0x7dd3fc);
+
+    // Fade player out as they sink into the deep water
+    this.tweens.add({
+      targets: this.player,
+      alpha: 0,
+      y: this.player.y + 24,
+      duration: 500,
+      ease: 'Sine.easeIn',
+    });
+
+    // Detach camera so it stays steady on the scenery
+    this.cameras.main.stopFollow();
+
+    this.callbacks.onHealthChange?.(0, this.maxHealth, this.lives);
+    this.callbacks.onPlayerDeath?.(this.lives);
+
+    if (this.lives <= 0) {
+      this.time.delayedCall(1000, () => {
+        if (!this.sys || !this.scene.isActive()) return;
+        soundManager.stopBGM();
+        soundManager.playGameOver();
+        this.callbacks.onGameOver?.(this.score, this.crystalsCollected);
+      });
+    } else {
+      this.time.delayedCall(1000, () => {
+        if (!this.sys || !this.scene.isActive()) return;
+        this.respawnPlayer();
+      });
+    }
+  }
+
   private handlePlayerDeath(): void {
     if (this.isDead || !this.player) return;
     this.isDead = true;
@@ -1131,13 +1286,18 @@ export class GreenfieldScene extends Phaser.Scene {
   private respawnPlayer(): void {
     if (!this.player || !this.player.active) return;
     this.isDead = false;
+    this.isDrowning = false;
     this.health = this.maxHealth;
+    this.player.clearTint();
     this.player.setCollideWorldBounds(true);
     this.player.setPosition(this.respawnX, this.respawnY);
     this.player.setVelocity(0, 0);
     this.player.setAlpha(1);
     this.isInvulnerable = true;
     this.player.play('pip-idle');
+
+    // Smoothly reconnect camera follow
+    this.cameras.main.startFollow(this.player, true, 0.1, 0.1, 0, 30);
 
     this.callbacks.onHealthChange?.(this.health, this.maxHealth, this.lives);
 
@@ -1202,15 +1362,21 @@ export class GreenfieldScene extends Phaser.Scene {
 
     const onGround = Boolean(this.player.body.blocked.down || this.player.body.touching.down);
 
-    // Update Checkpoint along progress
-    if (onGround && this.player.x > this.respawnX + 250 && this.player.x < this.levelWidth - 200) {
+    // Safe Checkpoint update: ONLY update when player is safely standing on solid ground (Y between 190 and 255)
+    // and firmly within a recognized land segment (never in water or near a pit edge!)
+    const isSafeGroundHeight = this.player.y >= 190 && this.player.y <= 255;
+    const isInSafeLand = this.currentGroundSegments.some(
+      (seg) => this.player.x >= seg.start + 30 && this.player.x <= seg.end - 30
+    );
+    if (onGround && isSafeGroundHeight && isInSafeLand && this.player.x > this.respawnX + 220 && this.player.x < this.levelWidth - 200) {
       this.respawnX = Math.round(this.player.x);
-      this.respawnY = Math.round(this.player.y - 10);
+      this.respawnY = 220; // Always a safe land coordinate
     }
 
-    // Pit fall check
-    if (this.player.y > this.LEVEL_HEIGHT - 10) {
-      this.handlePlayerDeath();
+    // Water hazard and pit fall check:
+    // If player drops into water/pit (y >= 268) while not supported on ground
+    if (this.player.y >= 268 && !onGround) {
+      this.handleWaterDrown();
       return;
     }
 

@@ -225,6 +225,62 @@ class SoundManager {
     this.playHurt();
   }
 
+  public playSplash() {
+    if (!this.soundEnabled) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    // Splash impact tone
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(440, now);
+    osc.frequency.exponentialRampToValueAtTime(110, now + 0.22);
+
+    gain.gain.setValueAtTime(0.3 * this.volume, now);
+    gain.gain.linearRampToValueAtTime(0.01, now + 0.22);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.23);
+
+    // Underwater bubbling chirp
+    const osc2 = this.ctx.createOscillator();
+    const gain2 = this.ctx.createGain();
+    osc2.type = 'triangle';
+    osc2.frequency.setValueAtTime(220, now + 0.05);
+    osc2.frequency.exponentialRampToValueAtTime(520, now + 0.18);
+    gain2.gain.setValueAtTime(0.2 * this.volume, now + 0.05);
+    gain2.gain.linearRampToValueAtTime(0.01, now + 0.18);
+    osc2.connect(gain2);
+    gain2.connect(this.ctx.destination);
+    osc2.start(now + 0.05);
+    osc2.stop(now + 0.19);
+  }
+
+  public playBubble() {
+    if (!this.soundEnabled) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(300, now);
+    osc.frequency.exponentialRampToValueAtTime(650, now + 0.12);
+    gain.gain.setValueAtTime(0.15 * this.volume, now);
+    gain.gain.linearRampToValueAtTime(0.01, now + 0.12);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.13);
+  }
+
   // --- Boss Sounds ---
 
   public playBossHit() {
